@@ -3,8 +3,19 @@ import numpy as np
 
 
 def detect_light_color(image):
+    """
+    Detect the active traffic-light color.
+
+    Returns:
+        RED, YELLOW, GREEN, or UNKNOWN
+    """
+
+    if image is None or image.size == 0:
+        return "UNKNOWN"
+
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
+    # HSV ranges
     red_lower_1 = np.array([0, 100, 100])
     red_upper_1 = np.array([10, 255, 255])
 
@@ -17,12 +28,9 @@ def detect_light_color(image):
     green_lower = np.array([40, 70, 70])
     green_upper = np.array([90, 255, 255])
 
-    red_mask_1 = cv2.inRange(hsv, red_lower_1, red_upper_1)
-    red_mask_2 = cv2.inRange(hsv, red_lower_2, red_upper_2)
-
-    red_pixels = (
-        cv2.countNonZero(red_mask_1)
-        + cv2.countNonZero(red_mask_2)
+    red_mask = (
+        cv2.inRange(hsv, red_lower_1, red_upper_1)
+        | cv2.inRange(hsv, red_lower_2, red_upper_2)
     )
 
     yellow_mask = cv2.inRange(
@@ -37,41 +45,34 @@ def detect_light_color(image):
         green_upper
     )
 
-    yellow_pixels = cv2.countNonZero(yellow_mask)
-    green_pixels = cv2.countNonZero(green_mask)
+    # Calculate brightness-weighted scores
+    value_channel = hsv[:, :, 2]
 
-    colors = {
-        "RED": red_pixels,
-        "YELLOW": yellow_pixels,
-        "GREEN": green_pixels,
+    red_score = int(
+        np.sum(value_channel[red_mask > 0])
+    )
+
+    yellow_score = int(
+        np.sum(value_channel[yellow_mask > 0])
+    )
+
+    green_score = int(
+        np.sum(value_channel[green_mask > 0])
+    )
+
+    scores = {
+        "RED": red_score,
+        "YELLOW": yellow_score,
+        "GREEN": green_score,
     }
 
-    detected_color = max(colors, key=colors.get)
+    best_color = max(scores, key=scores.get)
 
-    if colors[detected_color] < 20:
+    if scores[best_color] < 5000:
         return "UNKNOWN"
 
-    return detected_color
-
-
-def create_test_image(color):
-    image = np.zeros((200, 200, 3), dtype=np.uint8)
-
-    if color == "RED":
-        bgr = (0, 0, 255)
-    elif color == "YELLOW":
-        bgr = (0, 255, 255)
-    else:
-        bgr = (0, 255, 0)
-
-    cv2.circle(image, (100, 100), 60, bgr, -1)
-
-    return image
+    return best_color
 
 
 if __name__ == "__main__":
-    for color in ["RED", "YELLOW", "GREEN"]:
-        test_image = create_test_image(color)
-        result = detect_light_color(test_image)
-
-        print(f"Expected: {color} | Detected: {result}")
+    print("Traffic-light color detector loaded.")
