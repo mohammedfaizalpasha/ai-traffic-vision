@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Traffic Vision</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+        }
+
+        header {
+            padding: 20px 30px;
+            background: #1f2937;
+            border-bottom: 1px solid #374151;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .container {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: #1f2937;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+
+        .label {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #light {
+            color: #ef4444;
+        }
+
+        #system {
+            color: #22c55e;
+        }
+
+        @media (max-width: 800px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🚦 AI Traffic Vision</h1>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <div class="label">SYSTEM</div>
+        <div class="value" id="system">Loading...</div>
+    </div>
+
+    <div class="card">
+        <div class="label">TRAFFIC LIGHT</div>
+        <div class="value" id="light">Loading...</div>
+    </div>
+
+    <div class="card">
+        <div class="label">VEHICLES DETECTED</div>
+        <div class="value" id="vehicles">0</div>
+    </div>
+
+    <div class="card">
+        <div class="label">VIOLATIONS</div>
+        <div class="value" id="violations">0</div>
+    </div>
+
+</div>
+
+<script>
+    async function updateDashboard() {
+        try {
+            const response = await fetch(
+                "http://127.0.0.1:8000/dashboard"
+            );
+
+            const data = await response.json();
+
+            document.getElementById("system").textContent =
+                data.system;
+
+            document.getElementById("light").textContent =
+                data.traffic_light;
+
+            document.getElementById("vehicles").textContent =
+                data.vehicles_detected;
+
+            document.getElementById("violations").textContent =
+                data.violations;
+
+        } catch (error) {
+
+            document.getElementById("system").textContent =
+                "Offline";
+
+            console.error(error);
+        }
+    }
+
+    updateDashboard();
+
+    setInterval(updateDashboard, 2000);
+</script>
+
+</body>
+</html>
