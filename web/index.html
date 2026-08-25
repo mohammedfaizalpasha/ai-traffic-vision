@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>AI Traffic Vision</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -18,7 +23,28 @@
             background: #1f2937;
             border-bottom: 1px solid #374151;
         }
+       
+       .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
 
+.header-status {
+    margin-top: 6px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.connection {
+    font-size: 14px;
+    color: #22c55e;
+}
+
+#connectionDot {
+    margin-right: 6px;
+}
         h1 {
             margin: 0;
         }
@@ -56,6 +82,49 @@
             color: #22c55e;
         }
 
+        .section {
+            margin: 0 30px 30px;
+            background: #1f2937;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .evidence-image {
+            display: none;
+            max-width: 100%;
+            max-height: 500px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+
+        .history-item {
+            background: #111827;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+        }
+
+        .history-item a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        .history-item a:hover {
+            text-decoration: underline;
+        }
+
+        .muted {
+            color: #9ca3af;
+        }
+
         @media (max-width: 800px) {
             .container {
                 grid-template-columns: 1fr 1fr;
@@ -65,6 +134,11 @@
         @media (max-width: 500px) {
             .container {
                 grid-template-columns: 1fr;
+                padding: 15px;
+            }
+
+            .section {
+                margin: 0 15px 15px;
             }
         }
     </style>
@@ -73,7 +147,19 @@
 <body>
 
 <header>
-    <h1>🚦 AI Traffic Vision</h1>
+     <div class="header-content">
+        <div>
+            <h1>🚦 AI Traffic Vision</h1>
+            <div class="header-status">
+                Live Traffic Monitoring
+            </div>
+        </div>
+
+        <div class="connection">
+            <span id="connectionDot">●</span>
+            <span id="connectionText">Connecting...</span>
+        </div>
+    </div>
 </header>
 
 <div class="container">
@@ -100,39 +186,241 @@
 
 </div>
 
-<script>
-    async function updateDashboard() {
-        try {
-            const response = await fetch(
-                "http://127.0.0.1:8000/dashboard"
-            );
 
-            const data = await response.json();
+<!-- LATEST EVIDENCE -->
+
+<div class="section">
+
+    <div class="section-title">
+        📸 Latest Violation Evidence
+    </div>
+
+    <div id="evidenceStatus" class="muted">
+        No evidence available
+    </div>
+
+    <img
+        id="evidenceImage"
+        class="evidence-image"
+        alt="Violation evidence"
+    >
+
+</div>
+
+
+<!-- VIOLATION HISTORY -->
+
+<div class="section">
+
+    <div class="section-title">
+        🚨 Violation History
+    </div>
+
+    <div id="history">
+        <div class="muted">
+            No violations recorded.
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+
+    const API = "http://127.0.0.1:8000";
+
+
+    async function updateDashboard() {
+
+        try {
+
+            const response =
+                await fetch(API + "/dashboard");
+
+            if (!response.ok) {
+                throw new Error("Dashboard request failed");
+            }
+
+            const data =
+                await response.json();
+
+
+            // SYSTEM
 
             document.getElementById("system").textContent =
                 data.system;
+            
+           document.getElementById("connectionDot").style.color =
+    "#ef4444";
 
-            document.getElementById("light").textContent =
+document.getElementById("connectionText").textContent =
+    "Offline";
+
+            // TRAFFIC LIGHT
+
+            const light =
+                document.getElementById("light");
+
+            light.textContent =
                 data.traffic_light;
+
+
+            if (data.traffic_light === "RED") {
+                light.style.color = "#ef4444";
+            }
+            else if (data.traffic_light === "GREEN") {
+                light.style.color = "#22c55e";
+            }
+            else if (data.traffic_light === "YELLOW") {
+                light.style.color = "#facc15";
+            }
+            else {
+                light.style.color = "#9ca3af";
+            }
+
+
+            // VEHICLES
 
             document.getElementById("vehicles").textContent =
                 data.vehicles_detected;
 
+
+            // VIOLATIONS
+
             document.getElementById("violations").textContent =
                 data.violations;
 
-        } catch (error) {
+
+            // LATEST EVIDENCE
+
+            const evidenceStatus =
+                document.getElementById("evidenceStatus");
+
+            const evidenceImage =
+                document.getElementById("evidenceImage");
+
+
+            if (data.last_evidence) {
+
+                evidenceStatus.textContent =
+                    data.last_evidence;
+
+                evidenceImage.src =
+                    API + "/" + data.last_evidence
+                    + "?t=" + Date.now();
+
+                evidenceImage.style.display =
+                    "block";
+
+            }
+            else {
+
+                evidenceStatus.textContent =
+                    "No evidence available";
+
+                evidenceImage.style.display =
+                    "none";
+            }
+
+
+            // VIOLATION HISTORY
+
+            const history =
+                document.getElementById("history");
+
+
+            if (
+                data.violation_history &&
+                data.violation_history.length > 0
+            ) {
+
+                history.innerHTML = "";
+
+
+                data.violation_history
+                    .slice()
+                    .reverse()
+                    .forEach(function(violation) {
+
+                        const item =
+                            document.createElement("div");
+
+                        item.className =
+                            "history-item";
+
+
+                        let evidenceHTML =
+                            '<span class="muted">No evidence</span>';
+
+
+                        if (violation.evidence) {
+
+                            evidenceHTML =
+                                `<a
+                                    href="${API}/${violation.evidence}"
+                                    target="_blank"
+                                >
+                                    📸 View Evidence
+                                </a>`;
+                        }
+
+
+                        item.innerHTML = `
+                            <strong>
+                                🚨 Violation #${violation.id}
+                            </strong>
+
+                            <br><br>
+
+                            Traffic Light:
+                            ${violation.traffic_light}
+
+                            <br><br>
+
+                            ${evidenceHTML}
+                        `;
+
+
+                        history.appendChild(item);
+
+                    });
+
+            }
+            else {
+
+                history.innerHTML =
+                    '<div class="muted">' +
+                    'No violations recorded.' +
+                    '</div>';
+            }
+
+
+        }
+        catch (error) {
+
+            console.error(
+                "Dashboard error:",
+                error
+            );
 
             document.getElementById("system").textContent =
                 "Offline";
-
-            console.error(error);
         }
     }
 
+
+    // Initial update
+
     updateDashboard();
 
-    setInterval(updateDashboard, 2000);
+
+    // Update every 2 seconds
+
+    setInterval(
+        updateDashboard,
+        2000
+    );
+
 </script>
 
 </body>

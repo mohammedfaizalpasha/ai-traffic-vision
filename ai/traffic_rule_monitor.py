@@ -1,6 +1,8 @@
 from ultralytics import YOLO
 import cv2
 import requests
+from pathlib import Path
+from datetime import datetime
 
 from rule_engine import crossed_line, get_center
 from traffic_light_color import detect_light_color
@@ -37,6 +39,19 @@ previous_positions = {}
 
 # Prevent duplicate alerts
 already_reported = set()
+EVIDENCE_DIR = Path("evidence")
+EVIDENCE_DIR.mkdir(exist_ok=True)
+
+
+def save_violation_evidence(frame, track_id):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")[:-3]
+    filename = EVIDENCE_DIR / f"violation_{timestamp}_vehicle_{track_id}.jpg"
+
+    cv2.imwrite(str(filename), frame)
+
+    print(f"Evidence saved: {filename}")
+
+    return filename
 
 vehicle_classes = {"car", "motorcycle", "bus", "truck"}
 
@@ -176,12 +191,20 @@ while True:
                                 "crossed the stop line "
                                 "while the light was RED."
                             )
+                            
+                            evidence_file = save_violation_evidence(
+    annotated_frame,
+    track_id
+)
 
                             already_reported.add(track_id)
 
                             try:
                                 response = requests.post(
                                     "http://127.0.0.1:8000/violation",
+                                    params={
+        "evidence": str(evidence_file)
+    },
                                     timeout=5
                                 )
                                 print("Backend:", response.json())
