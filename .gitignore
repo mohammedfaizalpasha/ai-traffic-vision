@@ -1,4 +1,8 @@
 ai/.venv/
 __pycache__/
+<<<<<<< HEAD
 *.pyc
 *.pt
+=======
+*.pyc
+>>>>>>> 4dbe9e279a466ad25c5468741b1a77b89d61d2c6
